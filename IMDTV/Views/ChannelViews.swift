@@ -9,7 +9,7 @@ struct LiveView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             HStack {
-                Text("Live TV").font(.largeTitle.bold())
+                Text("Live TV").font(.title.bold())
                 Spacer()
                 Text(Date(), style: .time).font(.title3.monospacedDigit()).foregroundStyle(.secondary)
             }

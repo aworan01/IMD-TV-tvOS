@@ -35,7 +35,7 @@ struct RootView: View {
         }
         .environment(\.imdPalette, palette)
         .tint(palette.accent)
-        .sheet(isPresented: $showingAddProvider) { ProviderSetupView().environment(\.imdPalette, palette).tint(palette.accent) }
+        .fullScreenCover(isPresented: $showingAddProvider) { ProviderSetupView().environment(\.imdPalette, palette).tint(palette.accent) }
         .fullScreenCover(item: $library.selectedChannel) { PlayerScreen(channel: $0) }
         .alert("Couldn’t load provider", isPresented: Binding(get: { library.errorMessage != nil }, set: { if !$0 { library.errorMessage = nil } })) {
             Button("OK", role: .cancel) {}
@@ -47,9 +47,9 @@ private struct WelcomeView: View {
     let addProvider: () -> Void
     var body: some View {
         VStack(spacing: 30) {
-            Image(systemName: "tv.and.mediabox").font(.system(size: 110)).foregroundStyle(.tint, .purple)
-            Text("IMD TV").font(.system(size: 72, weight: .bold, design: .rounded))
-            Text("Your playlists. Your guide. Your Apple TV.").font(.title2).foregroundStyle(.secondary)
+            Image(systemName: "tv.and.mediabox").font(.system(size: 76)).foregroundStyle(.tint, .purple)
+            Text("IMD TV").font(.system(size: 52, weight: .semibold, design: .rounded))
+            Text("Your playlists. Your guide. Your Apple TV.").font(.body).foregroundStyle(.secondary)
             Button(action: addProvider) { Label("Add a playlist", systemImage: "plus") }.buttonStyle(.borderedProminent)
         }
     }

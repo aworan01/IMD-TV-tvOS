@@ -8,8 +8,8 @@ struct SearchView: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Search").font(.largeTitle.bold())
-            TextField("Channels or categories", text: $query).textFieldStyle(.plain).padding(22).glassPanel()
+            Text("Search").font(.title.bold())
+            TextField("Channels or categories", text: $query)
             if query.isEmpty { ContentUnavailableView("Search your library", systemImage: "magnifyingglass", description: Text("Use the remote or dictation to find a channel.")) }
             else if results.isEmpty { ContentUnavailableView.search(text: query) }
             else { ChannelGridView(title: "Results", channels: results) }

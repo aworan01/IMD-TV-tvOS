@@ -20,20 +20,17 @@ struct ProviderSetupView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            HStack(spacing: 40) {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Add Playlist").font(.largeTitle.bold()).padding(.bottom, 12)
-                    ForEach(Mode.allCases) { item in
-                        Button { mode = item } label: { Label(item.rawValue, systemImage: item.symbol).font(.title3.bold()).frame(maxWidth: .infinity, minHeight: 64, alignment: .leading) }
-                            .buttonStyle(.borderedProminent).tint(mode == item ? .accentColor : .gray.opacity(0.35))
-                    }
-                    Spacer()
-                }.frame(width: 340)
+        NavigationSplitView {
+            List(Mode.allCases, selection: $mode) { item in
+                Label(item.rawValue, systemImage: item.symbol).tag(item)
+            }
+            .navigationTitle("Add Playlist")
+        } detail: {
+            NavigationStack {
                 Group { switch mode { case .m3uURL: m3uPanel; case .xtream: xtreamPanel; case .localFile, .phone: localPanel } }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity).glassPanel()
-            }.padding(60).background(Color.black.opacity(0.18)).navigationTitle("")
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+                    .navigationTitle(mode.rawValue)
+                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+            }
         }
         .onDisappear { localServer.stop() }
     }
@@ -68,7 +65,10 @@ struct ProviderSetupView: View {
     }
 
     private func panel<Content: View>(title: String, detail: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 24) { Text(title).font(.largeTitle.bold()); Text(detail).font(.title3).foregroundStyle(.secondary); content(); Spacer() }.padding(46)
+        Form {
+            Section { Text(detail).font(.body).foregroundStyle(.secondary) }
+            Section { content() }
+        }
     }
     private func saveM3U() async {
         guard let url = URL(string: playlist) else { return }

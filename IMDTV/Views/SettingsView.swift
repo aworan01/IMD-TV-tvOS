@@ -40,30 +40,31 @@ private struct PlaylistManagementView: View {
     @State private var editing = false
     @State private var confirmingDelete = false
     @State private var testing = false
-    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
-            Text(provider.name).font(.largeTitle.bold())
-            Text(provider.kind.rawValue).foregroundStyle(.secondary)
-            LazyVGrid(columns: columns, spacing: 24) {
-                action("Edit Playlist", "pencil") { editing = true }
-                action("Refresh Channels", "arrow.clockwise") { Task { await library.refresh(provider) } }
-                action(testing ? "Testing…" : "Test Connection", "network") { testing = true; Task { await library.refresh(provider); testing = false } }
-                action("Delete Playlist", "trash", role: .destructive) { confirmingDelete = true }
+        Form {
+            Section {
+                LabeledContent("Name", value: provider.name)
+                LabeledContent("Type", value: provider.kind.rawValue)
             }
-            Spacer()
-        }.padding(70).navigationTitle("Manage Playlist")
-            .sheet(isPresented: $editing) { ProviderEditorView(provider: provider) }
+            Section("Actions") {
+                Button { editing = true } label: { Label("Edit Playlist", systemImage: "pencil") }
+                Button { Task { await library.refresh(provider) } } label: { Label("Refresh Channels", systemImage: "arrow.clockwise") }
+                Button {
+                    testing = true
+                    Task { await library.refresh(provider); testing = false }
+                } label: { Label(testing ? "Testing…" : "Test Connection", systemImage: "network") }
+                .disabled(testing)
+                Button(role: .destructive) { confirmingDelete = true } label: { Label("Delete Playlist", systemImage: "trash") }
+            }
+        }
+            .navigationTitle(provider.name)
+            .fullScreenCover(isPresented: $editing) { ProviderEditorView(provider: provider) }
             .alert("Delete playlist?", isPresented: $confirmingDelete) {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete", role: .destructive) { library.remove(provider); dismiss() }
             } message: { Text("This removes the provider and its stored credentials from this Apple TV.") }
     }
 
-    private func action(_ title: String, _ icon: String, role: ButtonRole? = nil, perform: @escaping () -> Void) -> some View {
-        Button(role: role, action: perform) { Label(title, systemImage: icon).font(.title2.bold()).frame(maxWidth: .infinity, minHeight: 110) }.buttonStyle(.borderedProminent)
-    }
 }
 
 private struct ProviderEditorView: View {
