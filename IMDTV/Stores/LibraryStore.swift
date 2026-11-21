@@ -23,12 +23,18 @@ final class LibraryStore: ObservableObject {
         await refresh(provider)
     }
 
-    func add(_ provider: ProviderAccount) async {
-        providers.removeAll { $0.id == provider.id }
-        providers.append(provider)
-        do { try KeychainStore.save(providers, account: providerKey) }
-        catch { errorMessage = "Could not securely save provider: \(error.localizedDescription)" }
+    @discardableResult
+    func add(_ provider: ProviderAccount) async -> Bool {
+        var updated = providers.filter { $0.id != provider.id }
+        updated.append(provider)
+        do { try KeychainStore.save(updated, account: providerKey) }
+        catch {
+            errorMessage = "Could not securely save provider: \(error.localizedDescription)"
+            return false
+        }
+        providers = updated
         await refresh(provider)
+        return errorMessage == nil
     }
 
     func update(_ provider: ProviderAccount) async {
@@ -59,6 +65,7 @@ final class LibraryStore: ObservableObject {
 
     func refresh(_ provider: ProviderAccount) async {
         isLoading = true; errorMessage = nil
+        programmes = []
         defer { isLoading = false }
         do {
             switch provider.kind {
@@ -68,7 +75,7 @@ final class LibraryStore: ObservableObject {
             case .xtream:
                 channels = try await XtreamService().load(account: provider)
             }
-            if let epgURL = provider.epgURL {
+            if let epgURL = ImportValidation.webURL(provider.epgURL?.absoluteString) {
                 programmes = try await XMLTVService().load(url: epgURL)
             } else if provider.kind == .xtream,
                       let user = provider.username, let pass = provider.password {

@@ -11,6 +11,7 @@ struct ProviderSetupView: View {
     @State private var username = ""
     @State private var password = ""
     @State private var status = ""
+    @State private var isImporting = false
     @StateObject private var localServer = LocalImportServer()
 
     enum Mode: String, CaseIterable, Identifiable {
@@ -46,14 +47,14 @@ struct ProviderSetupView: View {
     private var m3uPanel: some View {
         panel(title: "Import M3U URL", detail: "Enter a remote M3U or M3U8 playlist and optional XMLTV guide.") {
             TextField("Playlist name", text: $name); TextField("https://provider.example/playlist.m3u", text: $playlist); TextField("XMLTV guide URL (optional)", text: $epg)
-            Button("Import Playlist") { Task { await saveM3U() } }.buttonStyle(.borderedProminent).disabled(URL(string: playlist) == nil)
+            Button("Import Playlist") { Task { await saveM3U() } }.buttonStyle(.borderedProminent).disabled(ImportValidation.webURL(playlist) == nil || isImporting)
         }
     }
 
     private var xtreamPanel: some View {
         panel(title: "Xtream Codes", detail: "Use the server address and credentials supplied by your provider.") {
             TextField("Playlist name", text: $name); TextField("Server URL", text: $server); TextField("Username", text: $username); SecureField("Password", text: $password)
-            Button("Sign In and Import") { Task { await saveXtream() } }.buttonStyle(.borderedProminent).disabled(URL(string: server) == nil || username.isEmpty || password.isEmpty)
+            Button("Sign In and Import") { Task { await saveXtream() } }.buttonStyle(.borderedProminent).disabled(ImportValidation.webURL(server) == nil || username.isEmpty || password.isEmpty || isImporting)
         }
     }
 
@@ -72,6 +73,7 @@ struct ProviderSetupView: View {
                     if localServer.address == nil {
                         Button(localServer.code.isEmpty ? "Start Local Import" : "Retry") { beginLocalImport() }
                             .buttonStyle(.borderedProminent)
+                            .disabled(isImporting)
                     }
                     if !localServer.code.isEmpty {
                         Button("Stop", role: .destructive) { localServer.stop() }
@@ -90,33 +92,51 @@ struct ProviderSetupView: View {
         Form {
             Section { Text(detail).font(.body).foregroundStyle(.secondary) }
             Section { content() }
+            if isImporting { Section { ProgressView("Importing playlist…") } }
+            if !status.isEmpty { Section { Text(status).foregroundStyle(.orange) } }
         }
     }
     private func saveM3U() async {
-        guard let url = URL(string: playlist) else { return }
-        let account = ProviderAccount(name: name, kind: .m3u, serverURL: url.deletingLastPathComponent(), playlistURL: url, epgURL: URL(string: epg))
-        await library.add(account); dismiss()
+        guard let url = ImportValidation.webURL(playlist) else { return }
+        guard epg.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || ImportValidation.webURL(epg) != nil else {
+            status = "Enter a complete http:// or https:// guide URL, or leave it blank."; return
+        }
+        let account = ProviderAccount(name: name, kind: .m3u, serverURL: url.deletingLastPathComponent(), playlistURL: url, epgURL: ImportValidation.webURL(epg))
+        await save(account)
     }
     private func saveXtream() async {
-        guard let base = URL(string: server) else { return }
+        guard let base = ImportValidation.webURL(server) else { return }
         let account = ProviderAccount(name: name, kind: .xtream, serverURL: base, username: username.nilIfEmpty, password: password.nilIfEmpty)
-        await library.add(account); dismiss()
+        await save(account)
     }
     private func beginLocalImport() {
+        status = ""
         localServer.onPayload = { payload in Task { await importPayload(payload) } }
         localServer.start()
     }
     @MainActor private func importPayload(_ payload: PairingPayload) async {
-        if let content = payload.playlistContent, let url = saveLocalPlaylist(content) {
-            let account = ProviderAccount(name: payload.name, kind: .m3u, serverURL: url.deletingLastPathComponent(), playlistURL: url, epgURL: payload.epgURL.flatMap(URL.init(string:)))
-            await library.add(account); dismiss(); return
+        if let content = payload.playlistContent {
+            guard let url = saveLocalPlaylist(content) else { return }
+            let account = ProviderAccount(name: payload.name, kind: .m3u, serverURL: url.deletingLastPathComponent(), playlistURL: url, epgURL: ImportValidation.webURL(payload.epgURL))
+            await save(account); return
         }
-        let base = payload.serverURL.flatMap(URL.init(string:))
-            ?? payload.playlistURL.flatMap(URL.init(string:))?.deletingLastPathComponent()
+        let base = payload.provider == .xtream ? ImportValidation.webURL(payload.serverURL)
+            : ImportValidation.webURL(payload.playlistURL)?.deletingLastPathComponent()
         guard let base else { status = "The imported URLs are invalid."; return }
         let account = ProviderAccount(name: payload.name, kind: payload.provider, serverURL: base,
-            playlistURL: payload.playlistURL.flatMap(URL.init(string:)), epgURL: payload.epgURL.flatMap(URL.init(string:)), username: payload.username, password: payload.password)
-        await library.add(account); dismiss()
+            playlistURL: ImportValidation.webURL(payload.playlistURL), epgURL: ImportValidation.webURL(payload.epgURL), username: payload.username, password: payload.password)
+        await save(account)
+    }
+
+    @MainActor private func save(_ account: ProviderAccount) async {
+        guard !isImporting else { return }
+        isImporting = true; status = ""
+        defer { isImporting = false }
+        if await library.add(account) { dismiss() }
+        else {
+            status = library.errorMessage ?? "The playlist could not be imported. Please retry."
+            library.errorMessage = nil
+        }
     }
 
     private func saveLocalPlaylist(_ content: String) -> URL? {

@@ -45,6 +45,12 @@ Choose **Add Playlist → Import from phone → Start Local Import**. The Apple 
 
 The local page requires no external account or cloud service. It uses unencrypted HTTP inside the LAN, so use it only on a trusted home network. Router client isolation or guest Wi-Fi can prevent the phone from reaching the Apple TV.
 
+The six-character code belongs to that Apple TV's local address; there is no public website that accepts the code on its own. Keep the import screen open and enter the complete `http://IP:port/CODE` address shown on the TV in your browser. Mobile data and a different network cannot reach this local page. When the code expires, select **Retry** and use the new address.
+
+Uploaded files may be up to 5 MB. UTF-8 byte-order marks and leading blank lines are accepted. URL imports require a full HTTP or HTTPS URL; the guide URL can be left blank. The browser receipt confirms delivery only. The Apple TV checks the playlist and displays import failures without dismissing setup.
+
+Browser-form regression tests: `node --test scripts/test-import-form.cjs`. Native validation cases are in `Tests/ImportValidationTests.swift` and require the tvOS test target.
+
 ## Licence
 
 GPL-3.0. This port is derived from the GPL-3.0 Android IMD TV project and uses GPL-licensed KSPlayer.
