@@ -59,16 +59,30 @@ struct ProviderSetupView: View {
 
     private var localPanel: some View {
         panel(title: mode == .localFile ? "Upload a Playlist File" : "Import from Phone or PC", detail: "Connect a phone or computer to the same network, then open the address shown below. You can upload an M3U file or enter provider details.") {
-            if localServer.address == nil { Button("Start Local Import") { beginLocalImport() } }
-            else {
-                VStack(spacing: 22) {
-                    Text(localServer.code).font(.system(size: 64, weight: .bold, design: .monospaced)).tracking(8)
-                    Text(localServer.address ?? "").font(.title3.monospaced())
-                    Text("Open this address on a phone or computer connected to the same home network.")
-                    ProgressView(localServer.status)
-                    Button("Stop Import", role: .destructive) { localServer.stop() }
-                }.frame(maxWidth: .infinity).padding(.vertical, 20)
+            VStack(alignment: .leading, spacing: 18) {
+                if !localServer.code.isEmpty {
+                    Text(localServer.code).font(.system(size: 44, weight: .semibold, design: .monospaced)).tracking(6)
+                }
+                if let address = localServer.address {
+                    Text(address).font(.body.monospaced()).textSelection(.enabled)
+                    Text("Open this exact address on a phone or computer connected to the same home network.")
+                        .foregroundStyle(.secondary)
+                }
+                HStack(spacing: 14) {
+                    if localServer.address == nil {
+                        Button(localServer.code.isEmpty ? "Start Local Import" : "Retry") { beginLocalImport() }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    if !localServer.code.isEmpty {
+                        Button("Stop", role: .destructive) { localServer.stop() }
+                    }
+                }
+                Label(localServer.status, systemImage: localServer.address == nil ? "network.slash" : "network")
+                    .font(.callout)
+                    .foregroundStyle(localServer.address == nil ? .orange : .secondary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 12)
         }
     }
 

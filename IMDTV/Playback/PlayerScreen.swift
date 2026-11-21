@@ -19,9 +19,20 @@ struct PlayerScreen: View {
         ZStack {
             Color.black.ignoresSafeArea()
             if useFallback || shouldStartWithKSPlayer {
-                KSPlayerView(url: currentChannel.streamURL, headers: headers, clearKey: currentChannel.clearKey) { message in
-                    fallbackError = message
-                }
+                KSPlayerView(
+                    url: currentChannel.streamURL,
+                    headers: headers,
+                    clearKey: currentChannel.clearKey,
+                    title: library.nowPlaying(on: currentChannel)?.title ?? currentChannel.name,
+                    streams: streamVariants,
+                    currentStreamID: currentChannel.id,
+                    isFavourite: library.isFavourite(currentChannel),
+                    onSelectStream: { currentChannel = $0 },
+                    onFavourite: { library.toggleFavourite(currentChannel) },
+                    onUseAVPlayer: { useFallback = false },
+                    onDismiss: { dismiss() },
+                    onFailure: { fallbackError = $0 }
+                )
                 .id(currentChannel.id)
             } else {
                 SystemPlayerView(
@@ -36,12 +47,15 @@ struct PlayerScreen: View {
                     onFailure: { message in fallbackError = message; useFallback = true }
                 )
                 .id(currentChannel.id)
+                .ignoresSafeArea()
             }
 
             if (useFallback || shouldStartWithKSPlayer), let fallbackError {
                 VStack { Spacer(); Text(fallbackError).font(.callout).padding(18).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14)).padding(40) }
             }
         }
+        .background(Color.black)
+        .ignoresSafeArea()
         .onExitCommand { dismiss() }
     }
 
@@ -70,6 +84,14 @@ struct PlayerScreen: View {
     }
 }
 
+private final class FocusedPlayerViewController: AVPlayerViewController {
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        setNeedsFocusUpdate()
+        updateFocusIfNeeded()
+    }
+}
+
 private struct SystemPlayerView: UIViewControllerRepresentable {
     let channel: Channel
     let programme: Programme?
@@ -84,7 +106,9 @@ private struct SystemPlayerView: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
-        let controller = AVPlayerViewController()
+        let controller = FocusedPlayerViewController()
+        controller.view.backgroundColor = .black
+        controller.videoGravity = .resizeAspect
         controller.showsPlaybackControls = true
         controller.playbackControlsIncludeTransportBar = true
         controller.playbackControlsIncludeInfoViews = true

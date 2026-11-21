@@ -8,6 +8,7 @@ final class LocalImportServer: ObservableObject, @unchecked Sendable {
     @Published private(set) var status = "Not running"
 
     private var listener: NWListener?
+    private var addressTask: Task<Void, Never>?
     private let queue = DispatchQueue(label: "org.imdtv.local-import")
     private var expirationTask: Task<Void, Never>?
     var onPayload: (@MainActor (PairingPayload) -> Void)?
@@ -25,11 +26,10 @@ final class LocalImportServer: ObservableObject, @unchecked Sendable {
                 Task { @MainActor in
                     switch state {
                     case .ready:
-                        guard let port = listener?.port, let ip = Self.localIPv4Address() else {
-                            self.status = "Could not determine the Apple TV local IP address."; return
+                        guard let port = listener?.port else {
+                            self.status = "The import server started without a usable port."; return
                         }
-                        self.address = "http://\(ip):\(port.rawValue)/\(self.code)"
-                        self.status = "Waiting for playlist details…"
+                        self.resolveAddress(port: port.rawValue)
                     case .failed(let error): self.status = "Local import failed: \(error.localizedDescription)"
                     case .cancelled: if self.address != nil { self.status = "Import server stopped" }
                     default: break
@@ -47,10 +47,29 @@ final class LocalImportServer: ObservableObject, @unchecked Sendable {
 
     func stop() {
         expirationTask?.cancel(); expirationTask = nil
+        addressTask?.cancel(); addressTask = nil
         stopListenerOnly(); address = nil
     }
 
     private func stopListenerOnly() { listener?.cancel(); listener = nil }
+
+    @MainActor private func resolveAddress(port: UInt16) {
+        addressTask?.cancel()
+        status = "Server started. Looking for the Apple TV network address…"
+        addressTask = Task { [weak self] in
+            for _ in 0..<12 {
+                guard !Task.isCancelled, let self else { return }
+                if let ip = Self.localIPv4Address() {
+                    self.address = "http://\(ip):\(port)/\(self.code)"
+                    self.status = "Waiting for playlist details…"
+                    return
+                }
+                try? await Task.sleep(for: .milliseconds(500))
+            }
+            guard let self, !Task.isCancelled else { return }
+            self.status = "No local IP was found. Check Local Network permission and confirm this Apple TV is connected by Wi-Fi or Ethernet, then retry."
+        }
+    }
 
     private func accept(_ connection: NWConnection) {
         connection.start(queue: queue)
