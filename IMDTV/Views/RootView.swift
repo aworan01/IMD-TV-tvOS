@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var library: LibraryStore
+    @EnvironmentObject private var settings: SettingsStore
     @State private var selection: Destination = .live
     @State private var showingAddProvider = false
 
