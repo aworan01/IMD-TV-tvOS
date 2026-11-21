@@ -64,7 +64,7 @@ struct ProviderSetupView: View {
                     Text(localServer.code).font(.system(size: 44, weight: .semibold, design: .monospaced)).tracking(6)
                 }
                 if let address = localServer.address {
-                    Text(address).font(.body.monospaced()).textSelection(.enabled)
+                    Text(address).font(.body.monospaced())
                     Text("Open this exact address on a phone or computer connected to the same home network.")
                         .foregroundStyle(.secondary)
                 }
