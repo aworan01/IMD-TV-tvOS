@@ -21,8 +21,16 @@ struct ProviderSetupView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(Mode.allCases, selection: $mode) { item in
-                Label(item.rawValue, systemImage: item.symbol).tag(item)
+            List {
+                ForEach(Mode.allCases) { item in
+                    Button { mode = item } label: {
+                        HStack {
+                            Label(item.rawValue, systemImage: item.symbol)
+                            Spacer()
+                            if mode == item { Image(systemName: "checkmark") }
+                        }
+                    }
+                }
             }
             .navigationTitle("Add Playlist")
         } detail: {

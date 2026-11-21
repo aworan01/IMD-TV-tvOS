@@ -13,7 +13,6 @@ struct GuideView: View {
             List(channels) { channel in
                 GuideChannelRow(channel: channel)
                     .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
             }
             .navigationTitle("TV Guide")
             .toolbar {
@@ -45,7 +44,8 @@ private struct GuideChannelRow: View {
                     Text(channel.name).font(.headline).lineLimit(2)
                     Spacer()
                 }
-                .frame(width: 260, minHeight: 74)
+                .frame(width: 260)
+                .frame(minHeight: 74)
             }
             .buttonStyle(.bordered)
 
@@ -61,7 +61,8 @@ private struct GuideChannelRow: View {
                                     Text(programme.title).font(.headline).lineLimit(1)
                                     Text(programme.start, format: .dateTime.hour().minute()).font(.caption).foregroundStyle(.secondary)
                                 }
-                                .frame(width: 270, minHeight: 66, alignment: .leading)
+                                .frame(width: 270, alignment: .leading)
+                                .frame(minHeight: 66, alignment: .leading)
                             }
                             .buttonStyle(.bordered)
                         }
