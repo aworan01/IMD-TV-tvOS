@@ -2,8 +2,15 @@ import Foundation
 
 struct M3UService {
     func load(url: URL) async throws -> [Channel] {
-        let (data, response) = try await URLSession.shared.data(from: url)
-        guard (response as? HTTPURLResponse)?.statusCode ?? 200 < 400,
+        let data: Data
+        let status: Int
+        if url.isFileURL {
+            data = try Data(contentsOf: url); status = 200
+        } else {
+            let result = try await URLSession.shared.data(from: url)
+            data = result.0; status = (result.1 as? HTTPURLResponse)?.statusCode ?? 200
+        }
+        guard status < 400,
               let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1)
         else { throw ImportError.invalidResponse }
         let channels = parse(text)

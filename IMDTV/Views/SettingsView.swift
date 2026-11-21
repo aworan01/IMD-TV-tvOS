@@ -4,26 +4,22 @@ struct SettingsView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var settings: SettingsStore
     let addProvider: () -> Void
-    @State private var editingProvider: ProviderAccount?
-    @State private var deletingProvider: ProviderAccount?
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Playlists") {
                     ForEach(library.providers) { provider in
-                        HStack {
+                        NavigationLink {
+                            PlaylistManagementView(provider: provider)
+                        } label: {
                             VStack(alignment: .leading) { Text(provider.name); Text(provider.kind.rawValue).font(.caption).foregroundStyle(.secondary) }
-                            Spacer()
-                            Button("Edit") { editingProvider = provider }
-                            Button("Refresh") { Task { await library.refresh(provider) } }
-                            Button("Delete", role: .destructive) { deletingProvider = provider }
                         }
                     }
                     Button("Add Playlist", action: addProvider)
                 }
                 Section("Appearance") {
-                    Picker("Theme", selection: $settings.theme) { ForEach(["Celestial Glass", "Celestial +", "Celestial Retro", "Liquid Glass", "Xcube 360", "Gamestation"], id: \.self, content: Text.init) }
+                    Picker("Theme", selection: $settings.theme) { ForEach(IMDTheme.names, id: \.self, content: Text.init) }
                     Toggle("Show clock", isOn: $settings.showClock)
                 }
                 Section("Playback") {
@@ -34,11 +30,39 @@ struct SettingsView: View {
                 Section("About") { LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"); Text("IMD TV is a player for playlists you are authorized to use.") }
             }.navigationTitle("Settings")
         }
-        .sheet(item: $editingProvider) { ProviderEditorView(provider: $0) }
-        .alert("Delete playlist?", isPresented: Binding(get: { deletingProvider != nil }, set: { if !$0 { deletingProvider = nil } })) {
-            Button("Cancel", role: .cancel) { deletingProvider = nil }
-            Button("Delete", role: .destructive) { if let provider = deletingProvider { library.remove(provider) }; deletingProvider = nil }
-        } message: { Text("This removes the saved provider and its credentials from this Apple TV.") }
+    }
+}
+
+private struct PlaylistManagementView: View {
+    @EnvironmentObject private var library: LibraryStore
+    @Environment(\.dismiss) private var dismiss
+    let provider: ProviderAccount
+    @State private var editing = false
+    @State private var confirmingDelete = false
+    @State private var testing = false
+    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 28) {
+            Text(provider.name).font(.largeTitle.bold())
+            Text(provider.kind.rawValue).foregroundStyle(.secondary)
+            LazyVGrid(columns: columns, spacing: 24) {
+                action("Edit Playlist", "pencil") { editing = true }
+                action("Refresh Channels", "arrow.clockwise") { Task { await library.refresh(provider) } }
+                action(testing ? "Testing…" : "Test Connection", "network") { testing = true; Task { await library.refresh(provider); testing = false } }
+                action("Delete Playlist", "trash", role: .destructive) { confirmingDelete = true }
+            }
+            Spacer()
+        }.padding(70).navigationTitle("Manage Playlist")
+            .sheet(isPresented: $editing) { ProviderEditorView(provider: provider) }
+            .alert("Delete playlist?", isPresented: $confirmingDelete) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) { library.remove(provider); dismiss() }
+            } message: { Text("This removes the provider and its stored credentials from this Apple TV.") }
+    }
+
+    private func action(_ title: String, _ icon: String, role: ButtonRole? = nil, perform: @escaping () -> Void) -> some View {
+        Button(role: role, action: perform) { Label(title, systemImage: icon).font(.title2.bold()).frame(maxWidth: .infinity, minHeight: 110) }.buttonStyle(.borderedProminent)
     }
 }
 

@@ -54,5 +54,6 @@ struct PairingPayload: Codable {
     let epgURL: String?
     let username: String?
     let password: String?
+    let playlistContent: String?
 }
 

@@ -62,6 +62,7 @@ final class LocalImportServer: ObservableObject, @unchecked Sendable {
             guard let self else { connection.cancel(); return }
             var buffer = accumulated
             if let data { buffer.append(data) }
+            if buffer.count > 5_000_000 { self.send(connection, status: "413 Content Too Large", body: "Playlist files are limited to 5 MB.", contentType: "text/plain"); return }
             if self.requestIsComplete(buffer) || complete || error != nil { self.respond(to: connection, request: buffer) }
             else { self.receive(on: connection, accumulated: buffer) }
         }
@@ -116,9 +117,10 @@ final class LocalImportServer: ObservableObject, @unchecked Sendable {
         }
         let kind: ProviderKind = values["provider"] == "xtream" ? .xtream : .m3u
         guard let name = values["name"], !name.isEmpty else { return nil }
-        if kind == .m3u, URL(string: values["playlistURL"] ?? "") == nil { return nil }
+        let content = values["playlistContent"].flatMap { $0.hasPrefix("#EXTM3U") ? $0 : nil }
+        if kind == .m3u, URL(string: values["playlistURL"] ?? "") == nil, content == nil { return nil }
         if kind == .xtream, URL(string: values["serverURL"] ?? "") == nil || values["username", default: ""].isEmpty || values["password", default: ""].isEmpty { return nil }
-        return PairingPayload(provider: kind, name: name, serverURL: values["serverURL"], playlistURL: values["playlistURL"], epgURL: values["epgURL"], username: values["username"], password: values["password"])
+        return PairingPayload(provider: kind, name: name, serverURL: values["serverURL"], playlistURL: values["playlistURL"], epgURL: values["epgURL"], username: values["username"], password: values["password"], playlistContent: content)
     }
 
     private static func makeCode() -> String { String((0..<6).map { _ in "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".randomElement()! }) }
@@ -148,9 +150,9 @@ final class LocalImportServer: ObservableObject, @unchecked Sendable {
     <style>body{font:18px system-ui;color:#fff;background:#050918;display:grid;place-items:center;min-height:100vh;margin:0}main{width:min(560px,90%);background:#111a36;padding:32px;border-radius:24px}label{display:grid;gap:6px;margin:14px 0}input,select,button{font:inherit;padding:14px;border-radius:12px;border:1px solid #ffffff33;background:#ffffff0d;color:#fff}button{width:100%;background:#1677ff;font-weight:700}.note{color:#aab6d2}</style>
     <main><h1>IMD TV</h1><p>Local import code: <strong>\(code)</strong></p><p class=note>Details go directly to this Apple TV and are not uploaded to the internet.</p>
     <form method=post action="/\(code)/submit"><label>Playlist name<input name=name value="My TV" required></label><label>Type<select name=provider id=p><option value=m3u>M3U Playlist</option><option value=xtream>Xtream Codes</option></select></label>
-    <div id=m><label>M3U URL<input name=playlistURL type=url></label><label>XMLTV URL (optional)<input name=epgURL type=url></label></div>
+    <div id=m><label>M3U URL (optional when uploading a file)<input name=playlistURL type=url></label><label>Or select an M3U file<input id=file type=file accept=".m3u,.m3u8,text/plain"></label><input id=content name=playlistContent type=hidden><label>XMLTV URL (optional)<input name=epgURL type=url></label></div>
     <div id=x hidden><label>Server URL<input name=serverURL type=url></label><label>Username<input name=username></label><label>Password<input name=password type=password></label></div><button>Send to Apple TV</button></form></main>
-    <script>p.onchange=()=>{let q=p.value==='m3u';m.hidden=!q;x.hidden=q}</script>
+    <script>p.onchange=()=>{let q=p.value==='m3u';m.hidden=!q;x.hidden=q};document.querySelector('form').addEventListener('submit',async e=>{if(file.files.length&&!content.value){e.preventDefault();content.value=await file.files[0].text();e.target.submit()}})</script>
     """ }
     private static let successHTML = "<!doctype html><meta name=viewport content='width=device-width'><body style='font:24px system-ui;background:#050918;color:white;display:grid;place-items:center;height:100vh'><h1>Playlist sent. Return to your Apple TV.</h1>"
 }

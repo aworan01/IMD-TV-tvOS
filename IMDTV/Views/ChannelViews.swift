@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LiveView: View {
+    @Environment(\.imdPalette) private var palette
     @EnvironmentObject private var library: LibraryStore
     @State private var category = "All"
     var filtered: [Channel] { category == "All" ? library.channels : library.channels.filter { $0.category == category } }
@@ -15,7 +16,7 @@ struct LiveView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack { ForEach(["All"] + library.categories, id: \.self) { item in
                     Button(item) { category = item }
-                        .buttonStyle(.bordered).tint(category == item ? IMDTheme.cyan : .gray)
+                        .buttonStyle(.bordered).tint(category == item ? palette.accent : .gray)
                 }}
             }
             ChannelGridView(title: category, channels: filtered)
@@ -39,6 +40,7 @@ struct ChannelGridView: View {
 }
 
 struct ChannelCard: View {
+    @Environment(\.imdPalette) private var palette
     @EnvironmentObject private var library: LibraryStore
     @Environment(\.isFocused) private var isFocused
     let channel: Channel
@@ -47,7 +49,7 @@ struct ChannelCard: View {
         Button { library.selectedChannel = channel } label: {
             VStack(alignment: .leading, spacing: 12) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 18).fill(.white.opacity(0.08))
+                    RoundedRectangle(cornerRadius: palette.radius).fill(palette.card)
                     AsyncImage(url: channel.logoURL) { image in image.resizable().scaledToFit() }
                         placeholder: { Image(systemName: "tv").font(.system(size: 54)).foregroundStyle(.secondary) }
                         .padding(24)
