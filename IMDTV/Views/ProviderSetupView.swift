@@ -66,7 +66,8 @@ struct ProviderSetupView: View {
         } catch { status = error.localizedDescription }
     }
     private func importPayload(_ payload: PairingPayload) async {
-        let base = URL(string: payload.serverURL ?? "") ?? URL(string: payload.playlistURL ?? "")!.deletingLastPathComponent()
+        let base = payload.serverURL.flatMap(URL.init(string:))
+            ?? payload.playlistURL.flatMap(URL.init(string:))?.deletingLastPathComponent()
         guard let base else { status = "The imported URLs are invalid."; return }
         let account = ProviderAccount(name: payload.name, kind: payload.provider, serverURL: base,
             playlistURL: payload.playlistURL.flatMap(URL.init(string:)), epgURL: payload.epgURL.flatMap(URL.init(string:)), username: payload.username, password: payload.password)

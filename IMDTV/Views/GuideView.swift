@@ -41,7 +41,7 @@ private struct GuideRow: View {
         HStack(spacing: 5) {
             Button { library.selectedChannel = channel } label: {
                 HStack { AsyncImage(url: channel.logoURL) { $0.resizable().scaledToFit() } placeholder: { Image(systemName: "tv") }.frame(width: 70); Text(channel.name).lineLimit(1); Spacer() }
-                    .padding(.horizontal, 12).frame(width: 310, maxHeight: .infinity)
+                    .padding(.horizontal, 12).frame(width: 310).frame(maxHeight: .infinity)
             }.buttonStyle(.borderless).background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
             if items.isEmpty { Text("No guide information").foregroundStyle(.secondary).padding().frame(maxWidth: .infinity, alignment: .leading).background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12)) }
             else { ForEach(items) { item in
