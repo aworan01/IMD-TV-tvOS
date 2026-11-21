@@ -26,6 +26,14 @@ jobs:
           xcodebuild -project IMDTV.xcodeproj -scheme IMDTV -configuration Release
           -destination 'generic/platform=tvOS' -derivedDataPath DerivedData
           CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+      - name: Validate embedded extension metadata
+        run: |
+          APP="DerivedData/Build/Products/Release-appletvos/IMD TV.app"
+          EXTENSION="$APP/PlugIns/IMD TV Top Shelf.appex"
+          test -d "$EXTENSION"
+          test -n "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$EXTENSION/Info.plist")"
+          test -n "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$EXTENSION/Info.plist")"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$EXTENSION/Info.plist")" = "XPC!"
       - name: Package unsigned IPA
         run: |
           mkdir -p Payload
