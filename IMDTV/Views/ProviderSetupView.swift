@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ProviderSetupView: View {
     @EnvironmentObject private var library: LibraryStore
-    @EnvironmentObject private var settings: SettingsStore
     @Environment(\.dismiss) private var dismiss
     @State private var mode: Mode = .manual
     @State private var kind: ProviderKind = .m3u
@@ -14,8 +13,9 @@ struct ProviderSetupView: View {
     @State private var password = ""
     @State private var code = ""
     @State private var status = ""
+    @StateObject private var localServer = LocalImportServer()
 
-    enum Mode: String, CaseIterable { case manual = "Enter details", pairing = "Import with code" }
+    enum Mode: String, CaseIterable { case manual = "Enter details", pairing = "Import from phone" }
 
     var body: some View {
         NavigationStack {
@@ -25,6 +25,7 @@ struct ProviderSetupView: View {
             }.navigationTitle("Add Playlist")
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
         }
+        .onDisappear { localServer.stop() }
     }
 
     @ViewBuilder private var manualFields: some View {
@@ -37,15 +38,17 @@ struct ProviderSetupView: View {
 
     private var pairingView: some View {
         Section {
-            if code.isEmpty { Button("Generate Import Code") { Task { await beginPairing() } } }
+            if localServer.address == nil { Button("Start Local Import") { beginLocalImport() } }
             else {
                 VStack(spacing: 22) {
-                    Text(code).font(.system(size: 70, weight: .bold, design: .monospaced)).tracking(10)
-                    Text("Open the pairing web page on your phone, enter this code, then submit your playlist.")
-                    ProgressView(status)
+                    Text(localServer.code).font(.system(size: 64, weight: .bold, design: .monospaced)).tracking(8)
+                    Text(localServer.address ?? "").font(.title3.monospaced()).textSelection(.enabled)
+                    Text("Open this address on a phone or computer connected to the same home network.")
+                    ProgressView(localServer.status)
+                    Button("Stop Import", role: .destructive) { localServer.stop() }
                 }.frame(maxWidth: .infinity).padding(30)
             }
-        } header: { Text("Secure Web Import") }
+        } header: { Text("Local Network Import") }
     }
 
     private var valid: Bool { kind == .m3u ? URL(string: playlist) != nil : URL(string: server) != nil && !username.isEmpty && !password.isEmpty }
@@ -54,18 +57,11 @@ struct ProviderSetupView: View {
         let account = ProviderAccount(name: name, kind: kind, serverURL: base, playlistURL: URL(string: playlist), epgURL: URL(string: epg), username: username.nilIfEmpty, password: password.nilIfEmpty)
         await library.add(account); dismiss()
     }
-    private func beginPairing() async {
-        guard let endpoint = URL(string: settings.pairingEndpoint) else { status = "Configure the endpoint in Settings"; return }
-        do {
-            let service = PairingService(endpoint: endpoint); code = try await service.createCode(); status = "Waiting for web import…"
-            for _ in 0..<120 {
-                try await Task.sleep(for: .seconds(2))
-                if let payload = try await service.poll(code: code) { await importPayload(payload); return }
-            }
-            status = "Code expired. Generate a new one."
-        } catch { status = error.localizedDescription }
+    private func beginLocalImport() {
+        localServer.onPayload = { payload in Task { await importPayload(payload) } }
+        localServer.start()
     }
-    private func importPayload(_ payload: PairingPayload) async {
+    @MainActor private func importPayload(_ payload: PairingPayload) async {
         let base = payload.serverURL.flatMap(URL.init(string:))
             ?? payload.playlistURL.flatMap(URL.init(string:))?.deletingLastPathComponent()
         guard let base else { status = "The imported URLs are invalid."; return }

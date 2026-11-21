@@ -25,7 +25,8 @@ struct XtreamService {
                 .appendingPathComponent(password).appendingPathComponent("\(stream.stream_id).\(ext)")
             return Channel(id: "xtream:\(stream.stream_id)", name: stream.name,
                            category: names[stream.category_id ?? ""] ?? "Other", streamURL: url,
-                           logoURL: stream.stream_icon.flatMap(URL.init(string:)), epgID: stream.epg_channel_id)
+                           logoURL: stream.stream_icon.flatMap(URL.init(string:)), epgID: stream.epg_channel_id,
+                           headers: ["User-Agent": "VLC/3.0.20 LibVLC/3.0.20"])
         }
     }
 

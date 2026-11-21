@@ -31,9 +31,30 @@ final class LibraryStore: ObservableObject {
         await refresh(provider)
     }
 
+    func update(_ provider: ProviderAccount) async {
+        guard let index = providers.firstIndex(where: { $0.id == provider.id }) else {
+            await add(provider); return
+        }
+        providers[index] = provider
+        do { try KeychainStore.save(providers, account: providerKey) }
+        catch { errorMessage = "Could not securely update provider: \(error.localizedDescription)" }
+        await refresh(provider)
+    }
+
+    func remove(_ provider: ProviderAccount) {
+        providers.removeAll { $0.id == provider.id }
+        do { try KeychainStore.save(providers, account: providerKey) }
+        catch { errorMessage = "Could not update secure provider storage: \(error.localizedDescription)" }
+        if providers.isEmpty {
+            channels = []; programmes = []
+        } else if let next = providers.first {
+            Task { await refresh(next) }
+        }
+    }
+
     func deleteProviders(at offsets: IndexSet) {
-        providers.remove(atOffsets: offsets)
-        try? KeychainStore.save(providers, account: providerKey)
+        let removed = offsets.compactMap { providers.indices.contains($0) ? providers[$0] : nil }
+        removed.forEach(remove)
     }
 
     func refresh(_ provider: ProviderAccount) async {

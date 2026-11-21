@@ -12,6 +12,7 @@
   <key>LSRequiresIPhoneOS</key><true/>
   <key>UILaunchScreen</key><dict><key>UIColorName</key><string>LaunchBackground</string></dict>
   <key>NSAppTransportSecurity</key><dict><key>NSAllowsArbitraryLoads</key><true/></dict>
+  <key>NSLocalNetworkUsageDescription</key><string>IMD TV temporarily hosts a local setup page so you can send playlist details from another device on your home network.</string>
   <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLSchemes</key><array><string>imdtv</string></array></dict></array>
 </dict></plist>
 

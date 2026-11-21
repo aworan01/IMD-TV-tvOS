@@ -11,8 +11,5 @@ final class SettingsStore: ObservableObject {
     @Published var showClock = UserDefaults.standard.object(forKey: "showClock") as? Bool ?? true {
         didSet { UserDefaults.standard.set(showClock, forKey: "showClock") }
     }
-    @Published var pairingEndpoint = UserDefaults.standard.string(forKey: "pairingEndpoint") ?? "https://YOUR-WORKER.workers.dev" {
-        didSet { UserDefaults.standard.set(pairingEndpoint, forKey: "pairingEndpoint") }
-    }
 }
 

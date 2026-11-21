@@ -12,7 +12,9 @@ Native SwiftUI tvOS port of IMD TV. It is an IPTV player only and contains no ch
 - KSPlayer/FFmpeg fallback for MKV, transport streams, and unsupported containers
 - Keychain storage for provider credentials
 - Layered app icon, Top Shelf assets, and Top Shelf extension
-- Short-code playlist import using GitHub Pages plus a Cloudflare Worker
+- Short-code playlist import hosted temporarily by the Apple TV on the local network
+- Edit, refresh, and delete saved playlists
+- Automatic AVPlayer-to-KSPlayer fallback with visible playback errors
 - GitHub Actions macOS build and unsigned IPA artifact
 
 ## ClearKey boundary
@@ -37,16 +39,11 @@ Every push to `main` runs **Build tvOS IPA**. The workflow publishes `IMD-TV-tvO
 
 KSPlayer's current XCFramework contains a physical-tvOS slice but no tvOS Simulator slice. CI therefore builds the generic physical Apple TV destination. Simulator builds must temporarily disable the KSPlayer targets or wait for an upstream simulator slice.
 
-## Web pairing setup
+## Local playlist import
 
-1. Create a Cloudflare KV namespace.
-2. Replace `REPLACE_WITH_KV_NAMESPACE_ID` in `PairingWorker/wrangler.toml`.
-3. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as repository secrets.
-4. Set repository variable `CLOUDFLARE_KV_CONFIGURED=true` and run **Deploy Pairing Worker**.
-5. Replace `https://YOUR-WORKER.workers.dev` in `PairingWeb/app.js` and in the app's default Settings endpoint.
-6. Enable GitHub Pages with **GitHub Actions** as its source.
+Choose **Add Playlist → Import from phone → Start Local Import**. The Apple TV displays an address such as `http://192.168.1.40:49152/AB7K9Q`. Open the complete address on a phone or computer connected to the same LAN, enter M3U or Xtream details, and submit. The listener accepts one valid submission and expires after ten minutes.
 
-Pairing records expire after ten minutes and are deleted when the Apple TV retrieves them. Credentials are never stored in this repository.
+The local page requires no external account or cloud service. It uses unencrypted HTTP inside the LAN, so use it only on a trusted home network. Router client isolation or guest Wi-Fi can prevent the phone from reaching the Apple TV.
 
 ## Licence
 
