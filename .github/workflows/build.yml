@@ -21,14 +21,6 @@ jobs:
         run: xcodegen generate
       - name: Resolve packages
         run: xcodebuild -resolvePackageDependencies -project IMDTV.xcodeproj -scheme IMDTV
-      - name: Build for Apple TV Simulator
-        run: >-
-          xcodebuild -project IMDTV.xcodeproj -scheme IMDTV -configuration Debug
-          -destination 'generic/platform=tvOS Simulator' CODE_SIGNING_ALLOWED=NO build
-      - name: Run unit tests
-        run: >-
-          xcodebuild -project IMDTV.xcodeproj -scheme IMDTV -configuration Debug
-          -destination 'platform=tvOS Simulator,name=Apple TV,OS=latest' CODE_SIGNING_ALLOWED=NO test
       - name: Build unsigned device app
         run: >-
           xcodebuild -project IMDTV.xcodeproj -scheme IMDTV -configuration Release

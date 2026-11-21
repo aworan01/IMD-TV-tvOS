@@ -35,6 +35,8 @@ Select your Apple Developer team and a unique bundle identifier before running o
 
 Every push to `main` runs **Build tvOS IPA**. The workflow publishes `IMD-TV-tvOS-unsigned.ipa` as both a workflow artifact and the `development` prerelease asset. It must be signed or re-signed with a valid Apple Developer certificate and tvOS provisioning profile before installation.
 
+KSPlayer's current XCFramework contains a physical-tvOS slice but no tvOS Simulator slice. CI therefore builds the generic physical Apple TV destination. Simulator builds must temporarily disable the KSPlayer targets or wait for an upstream simulator slice.
+
 ## Web pairing setup
 
 1. Create a Cloudflare KV namespace.
