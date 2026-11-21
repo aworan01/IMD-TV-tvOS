@@ -12,8 +12,8 @@ struct KSPlayerView: View {
 
     var body: some View {
         KSVideoPlayer(coordinator: coordinator, url: url, options: options)
-            .ignoresSafeArea()
             .onFinish { _, error in if let error { onFailure("KSPlayer failed: \(error.localizedDescription)") } }
+            .ignoresSafeArea()
     }
 
     private var options: KSOptions {

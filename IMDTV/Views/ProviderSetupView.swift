@@ -42,7 +42,7 @@ struct ProviderSetupView: View {
             else {
                 VStack(spacing: 22) {
                     Text(localServer.code).font(.system(size: 64, weight: .bold, design: .monospaced)).tracking(8)
-                    Text(localServer.address ?? "").font(.title3.monospaced()).textSelection(.enabled)
+                    Text(localServer.address ?? "").font(.title3.monospaced())
                     Text("Open this address on a phone or computer connected to the same home network.")
                     ProgressView(localServer.status)
                     Button("Stop Import", role: .destructive) { localServer.stop() }
