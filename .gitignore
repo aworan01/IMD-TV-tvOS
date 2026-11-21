@@ -1,0 +1,10 @@
+.DS_Store
+.build/
+DerivedData/
+IMDTV.xcodeproj/
+*.xcarchive
+*.ipa
+.xcodegen-cache
+PairingWorker/.wrangler/
+PairingWorker/node_modules/
+

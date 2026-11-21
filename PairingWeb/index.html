@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IMD TV Playlist Import</title><link rel="stylesheet" href="style.css"></head><body>
+<main><div class="mark">▶</div><h1>IMD TV</h1><p>Import a playlist securely to your Apple TV.</p>
+<form id="form"><label>Code<input id="code" maxlength="6" required autocomplete="one-time-code"></label>
+<label>Type<select id="provider"><option>M3U Playlist</option><option>Xtream Codes</option></select></label>
+<label>Playlist name<input id="name" value="My TV" required></label>
+<section id="m3u"><label>M3U URL<input id="playlistURL" type="url"></label><label>XMLTV URL (optional)<input id="epgURL" type="url"></label></section>
+<section id="xtream" hidden><label>Server URL<input id="serverURL" type="url"></label><label>Username<input id="username"></label><label>Password<input id="password" type="password"></label></section>
+<button>Send to Apple TV</button><output id="status"></output></form></main><script src="app.js"></script></body></html>
+

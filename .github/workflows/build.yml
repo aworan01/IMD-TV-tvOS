@@ -1,0 +1,51 @@
+name: Build tvOS IPA
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Resolve packages
+        run: xcodebuild -resolvePackageDependencies -project IMDTV.xcodeproj -scheme IMDTV
+      - name: Build for Apple TV Simulator
+        run: >-
+          xcodebuild -project IMDTV.xcodeproj -scheme IMDTV -configuration Debug
+          -destination 'generic/platform=tvOS Simulator' CODE_SIGNING_ALLOWED=NO build
+      - name: Run unit tests
+        run: >-
+          xcodebuild -project IMDTV.xcodeproj -scheme IMDTV -configuration Debug
+          -destination 'platform=tvOS Simulator,name=Apple TV,OS=latest' CODE_SIGNING_ALLOWED=NO test
+      - name: Build unsigned device app
+        run: >-
+          xcodebuild -project IMDTV.xcodeproj -scheme IMDTV -configuration Release
+          -destination 'generic/platform=tvOS' -derivedDataPath DerivedData
+          CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p Payload
+          cp -R "DerivedData/Build/Products/Release-appletvos/IMD TV.app" Payload/
+          ditto -c -k --sequesterRsrc --keepParent Payload IMD-TV-tvOS-unsigned.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IMD-TV-tvOS-unsigned
+          path: IMD-TV-tvOS-unsigned.ipa
+      - name: Publish development release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload development IMD-TV-tvOS-unsigned.ipa --clobber || gh release create development IMD-TV-tvOS-unsigned.ipa --prerelease --title "Development Build" --notes "Automated unsigned tvOS build. Sign with your Apple Developer profile before installation."
+
